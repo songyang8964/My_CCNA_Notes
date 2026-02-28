@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IP Header — DS Field — DSCP Bit Structure</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232733;
+    --border: #2e3345;
+    --text: #e2e4ea;
+    --text-dim: #8b8fa3;
+    --accent: #5b9cf6;
+    --accent-glow: rgba(91, 156, 246, 0.15);
+    --green: #4ade80;
+    --green-dim: rgba(74, 222, 128, 0.12);
+    --orange: #fb923c;
+    --orange-dim: rgba(251, 146, 60, 0.12);
+    --red: #f87171;
+    --red-dim: rgba(248, 113, 113, 0.12);
+    --purple: #a78bfa;
+    --purple-dim: rgba(167, 139, 250, 0.12);
+    --yellow: #facc15;
+    --yellow-dim: rgba(250, 204, 21, 0.1);
+    --cyan: #22d3ee;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans SC', sans-serif;
+    line-height: 1.7;
+    padding: 40px 20px;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  h1 span { color: var(--text-dim); font-weight: 400; font-size: 0.9rem; }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 0.88rem;
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+  }
+
+  /* ===== Section ===== */
+  .section {
+    margin-bottom: 48px;
+  }
+
+  .section-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--green);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::before {
+    content: '';
+    width: 4px;
+    height: 20px;
+    background: var(--green);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .note {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 0.88rem;
+    color: var(--text-dim);
+  }
+
+  .note strong { color: var(--text); }
+
+  /* ===== IP Header Diagram ===== */
+  .ip-header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 24px;
+    overflow-x: auto;
+  }
+
+  .ip-row {
+    display: grid;
+    gap: 0;
+    margin-bottom: 2px;
+  }
+
+  .ip-row-32 { grid-template-columns: repeat(32, 1fr); }
+
+  .ip-cell {
+    text-align: center;
+    padding: 10px 2px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+    position: relative;
+  }
+
+  .ip-cell.header {
+    background: var(--surface2);
+    color: var(--text-dim);
+    font-size: 0.6rem;
+    padding: 4px 2px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  /* Spans */
+  .span-4 { grid-column: span 4; }
+  .span-8 { grid-column: span 8; }
+  .span-3 { grid-column: span 3; }
+  .span-13 { grid-column: span 13; }
+  .span-16 { grid-column: span 16; }
+  .span-32 { grid-column: span 32; }
+  .span-6 { grid-column: span 6; }
+  .span-2 { grid-column: span 2; }
+
+  .c-version { background: var(--surface2); color: var(--text-dim); }
+  .c-ihl { background: var(--surface2); color: var(--text-dim); }
+  .c-ds { background: var(--accent); color: #fff; font-weight: 700; font-size: 0.85rem; box-shadow: inset 0 0 20px rgba(91,156,246,0.3); }
+  .c-totallen { background: var(--surface2); color: var(--text-dim); }
+  .c-id { background: var(--surface2); color: var(--text-dim); }
+  .c-flags { background: var(--surface2); color: var(--text-dim); }
+  .c-frag { background: var(--surface2); color: var(--text-dim); }
+  .c-ttl { background: var(--surface2); color: var(--text-dim); }
+  .c-proto { background: var(--surface2); color: var(--text-dim); }
+  .c-checksum { background: var(--surface2); color: var(--text-dim); }
+  .c-src { background: var(--surface2); color: var(--text-dim); }
+  .c-dst { background: var(--surface2); color: var(--text-dim); }
+
+  /* Arrow callout */
+  .callout-wrapper {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0 8px;
+  }
+
+  .arrow-down {
+    width: 0; height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-top: 16px solid var(--accent);
+    margin: 0 auto;
+    filter: drop-shadow(0 2px 8px rgba(91,156,246,0.4));
+  }
+
+  /* ===== DS Field Zoom ===== */
+  .ds-zoom {
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: 14px;
+    padding: 28px 24px;
+    box-shadow: 0 0 30px var(--accent-glow);
+  }
+
+  .ds-zoom-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    color: var(--accent);
+    margin-bottom: 16px;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .ds-bits {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0;
+    margin-bottom: 8px;
+  }
+
+  .ds-bit {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 14px 4px;
+    border: 1px solid var(--border);
+    font-weight: 600;
+  }
+
+  .ds-bit.bit-label {
+    background: var(--surface2);
+    color: var(--text-dim);
+    font-size: 0.7rem;
+    padding: 6px 4px;
+    font-weight: 400;
+  }
+
+  .ds-bit.dscp-bit {
+    background: linear-gradient(135deg, rgba(74,222,128,0.15), rgba(74,222,128,0.05));
+    color: var(--green);
+    font-size: 1rem;
+  }
+
+  .ds-bit.ecn-bit {
+    background: linear-gradient(135deg, rgba(251,146,60,0.12), rgba(251,146,60,0.04));
+    color: var(--orange);
+    font-size: 1rem;
+  }
+
+  .ds-bracket-row {
+    display: grid;
+    grid-template-columns: 6fr 2fr;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .bracket-label {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 10px 0 4px;
+    position: relative;
+  }
+
+  .bracket-label::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 3px;
+    border-radius: 2px;
+  }
+
+  .bracket-label.dscp-label {
+    color: var(--green);
+  }
+  .bracket-label.dscp-label::before {
+    background: var(--green);
+  }
+
+  .bracket-label.ecn-label {
+    color: var(--orange);
+  }
+  .bracket-label.ecn-label::before {
+    background: var(--orange);
+  }
+
+  .bracket-desc {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    padding-bottom: 4px;
+  }
+
+  /* ===== AF Bit Breakdown ===== */
+  .af-zoom {
+    background: var(--surface);
+    border: 2px solid var(--green);
+    border-radius: 14px;
+    padding: 28px 24px;
+    box-shadow: 0 0 30px var(--green-dim);
+    margin-top: 24px;
+  }
+
+  .af-zoom-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    color: var(--green);
+    margin-bottom: 16px;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .af-bits {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0;
+    margin-bottom: 8px;
+  }
+
+  .af-bit {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 16px 4px;
+    border: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .af-bit.af-label {
+    background: var(--surface2);
+    color: var(--text-dim);
+    font-size: 0.7rem;
+    padding: 6px 4px;
+    font-weight: 400;
+  }
+
+  .af-bit.class-bit {
+    background: linear-gradient(135deg, rgba(167,139,250,0.18), rgba(167,139,250,0.06));
+    color: var(--purple);
+  }
+
+  .af-bit.drop-bit {
+    background: linear-gradient(135deg, rgba(248,113,113,0.15), rgba(248,113,113,0.05));
+    color: var(--red);
+  }
+
+  .af-bit.zero-bit {
+    background: var(--surface2);
+    color: var(--text-dim);
+  }
+
+  .af-bracket-row {
+    display: grid;
+    grid-template-columns: 3fr 2fr 1fr;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .bracket-label.class-label {
+    color: var(--purple);
+  }
+  .bracket-label.class-label::before {
+    background: var(--purple);
+  }
+
+  .bracket-label.drop-label {
+    color: var(--red);
+  }
+  .bracket-label.drop-label::before {
+    background: var(--red);
+  }
+
+  .bracket-label.zero-label {
+    color: var(--text-dim);
+  }
+  .bracket-label.zero-label::before {
+    background: var(--text-dim);
+  }
+
+  /* ===== Example Cards ===== */
+  .examples {
+    margin-top: 32px;
+  }
+
+  .example-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+
+  .example-card:hover {
+    border-color: var(--accent);
+  }
+
+  .example-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .example-title .tag {
+    background: var(--accent-glow);
+    color: var(--accent);
+    padding: 2px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .bit-display {
+    display: grid;
+    grid-template-columns: repeat(6, 48px);
+    gap: 0;
+    margin: 12px 0;
+    justify-content: center;
+  }
+
+  .bit-box {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    border: 1px solid var(--border);
+  }
+
+  .bit-box.cls { background: var(--purple-dim); color: var(--purple); }
+  .bit-box.drp { background: var(--red-dim); color: var(--red); }
+  .bit-box.zro { background: var(--surface2); color: var(--text-dim); }
+
+  .calc-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    text-align: center;
+    margin: 4px 0;
+  }
+
+  .calc-line .hl { color: var(--yellow); font-weight: 600; }
+  .calc-line .result { color: var(--green); font-weight: 700; font-size: 1rem; }
+
+  /* ===== Formula Box ===== */
+  .formula-box {
+    background: linear-gradient(135deg, var(--surface), var(--surface2));
+    border: 2px solid var(--yellow);
+    border-radius: 14px;
+    padding: 28px;
+    text-align: center;
+    margin: 32px 0;
+    box-shadow: 0 0 30px var(--yellow-dim);
+  }
+
+  .formula-box .label {
+    font-size: 0.8rem;
+    color: var(--yellow);
+    font-weight: 600;
+    margin-bottom: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .formula-box .formula {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .formula-box .formula .cls-c { color: var(--purple); }
+  .formula-box .formula .drp-c { color: var(--red); }
+  .formula-box .formula .op { color: var(--text-dim); }
+
+  .formula-box .why {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-top: 12px;
+    line-height: 1.8;
+  }
+
+  .formula-box .why code {
+    background: var(--surface);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem;
+  }
+
+  /* ===== Full Table ===== */
+  .af-table-wrapper {
+    overflow-x: auto;
+    margin-top: 20px;
+  }
+
+  table.af-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  table.af-table th {
+    background: var(--surface2);
+    color: var(--text-dim);
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    font-weight: 600;
+    text-align: center;
+  }
+
+  table.af-table td {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    text-align: center;
+    background: var(--surface);
+  }
+
+  table.af-table .drop1 { color: var(--green); }
+  table.af-table .drop2 { color: var(--yellow); }
+  table.af-table .drop3 { color: var(--red); }
+
+  .class-col { color: var(--purple); font-weight: 600; }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 640px) {
+    .bit-display { grid-template-columns: repeat(6, 40px); }
+    .bit-box { width: 40px; height: 40px; font-size: 1rem; }
+    .formula-box .formula { font-size: 1.15rem; }
+    .ip-header { padding: 16px 12px; }
+    .ip-cell { font-size: 0.6rem; padding: 6px 1px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>IP Header → DS Field → DSCP → AF <span>// bit-level breakdown</span></h1>
+  <p class="subtitle">从 IP 头部的位置开始，一层一层放大到 AF 的 bit 结构</p>
+
+  <!-- ===== SECTION 1: IP Header ===== -->
+  <div class="section">
+    <div class="section-title">第一层：IPv4 Header 全貌（每列 = 1 bit，共 32 bit/行）</div>
+    <div class="ip-header">
+      <!-- Bit numbers -->
+      <div class="ip-row ip-row-32">
+        <div class="ip-cell header">0</div><div class="ip-cell header">1</div>
+        <div class="ip-cell header">2</div><div class="ip-cell header">3</div>
+        <div class="ip-cell header">4</div><div class="ip-cell header">5</div>
+        <div class="ip-cell header">6</div><div class="ip-cell header">7</div>
+        <div class="ip-cell header">8</div><div class="ip-cell header">9</div>
+        <div class="ip-cell header">10</div><div class="ip-cell header">11</div>
+        <div class="ip-cell header">12</div><div class="ip-cell header">13</div>
+        <div class="ip-cell header">14</div><div class="ip-cell header">15</div>
+        <div class="ip-cell header">16</div><div class="ip-cell header">17</div>
+        <div class="ip-cell header">18</div><div class="ip-cell header">19</div>
+        <div class="ip-cell header">20</div><div class="ip-cell header">21</div>
+        <div class="ip-cell header">22</div><div class="ip-cell header">23</div>
+        <div class="ip-cell header">24</div><div class="ip-cell header">25</div>
+        <div class="ip-cell header">26</div><div class="ip-cell header">27</div>
+        <div class="ip-cell header">28</div><div class="ip-cell header">29</div>
+        <div class="ip-cell header">30</div><div class="ip-cell header">31</div>
+      </div>
+      <!-- Row 1 -->
+      <div class="ip-row ip-row-32">
+        <div class="ip-cell c-version span-4">Version</div>
+        <div class="ip-cell c-ihl span-4">IHL</div>
+        <div class="ip-cell c-ds span-8">DS Field ★</div>
+        <div class="ip-cell c-totallen span-16">Total Length</div>
+      </div>
+      <!-- Row 2 -->
+      <div class="ip-row ip-row-32">
+        <div class="ip-cell c-id span-16">Identification</div>
+        <div class="ip-cell c-flags span-3">Flg</div>
+        <div class="ip-cell c-frag span-13">Fragment Offset</div>
+      </div>
+      <!-- Row 3 -->
+      <div class="ip-row ip-row-32">
+        <div class="ip-cell c-ttl span-8">TTL</div>
+        <div class="ip-cell c-proto span-8">Protocol</div>
+        <div class="ip-cell c-checksum span-16">Header Checksum</div>
+      </div>
+      <!-- Row 4 -->
+      <div class="ip-row ip-row-32">
+        <div class="ip-cell c-src span-32">Source IP Address</div>
+      </div>
+      <!-- Row 5 -->
+      <div class="ip-row ip-row-32">
+        <div class="ip-cell c-dst span-32">Destination IP Address</div>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong>DS Field</strong>（原名 ToS / Type of Service）在 IP 头部的第 2 个字节（bit 8-15），共 <strong>8 bits</strong>。这就是 QoS 标记写入的位置。
+    </div>
+  </div>
+
+  <!-- Arrow -->
+  <div class="callout-wrapper"><div class="arrow-down"></div></div>
+
+  <!-- ===== SECTION 2: DS Field Zoom ===== -->
+  <div class="section">
+    <div class="section-title">第二层：DS Field 放大（8 bits）</div>
+    <div class="ds-zoom">
+      <div class="ds-zoom-title">DS Field = DSCP (6 bits) + ECN (2 bits)</div>
+
+      <!-- Bit labels -->
+      <div class="ds-bits">
+        <div class="ds-bit bit-label">bit 7</div>
+        <div class="ds-bit bit-label">bit 6</div>
+        <div class="ds-bit bit-label">bit 5</div>
+        <div class="ds-bit bit-label">bit 4</div>
+        <div class="ds-bit bit-label">bit 3</div>
+        <div class="ds-bit bit-label">bit 2</div>
+        <div class="ds-bit bit-label">bit 1</div>
+        <div class="ds-bit bit-label">bit 0</div>
+      </div>
+      <!-- Bit values -->
+      <div class="ds-bits">
+        <div class="ds-bit dscp-bit">D</div>
+        <div class="ds-bit dscp-bit">S</div>
+        <div class="ds-bit dscp-bit">C</div>
+        <div class="ds-bit dscp-bit">P</div>
+        <div class="ds-bit dscp-bit">5</div>
+        <div class="ds-bit dscp-bit">0</div>
+        <div class="ds-bit ecn-bit">E</div>
+        <div class="ds-bit ecn-bit">C</div>
+      </div>
+
+      <!-- Brackets -->
+      <div class="ds-bracket-row">
+        <div class="bracket-label dscp-label">DSCP — 6 bits (0-63)</div>
+        <div class="bracket-label ecn-label">ECN — 2 bits</div>
+      </div>
+      <div class="ds-bracket-row">
+        <div class="bracket-desc">QoS 标记写在这里</div>
+        <div class="bracket-desc">拥塞通知（考试不考）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Arrow -->
+  <div class="callout-wrapper"><div class="arrow-down" style="border-top-color: var(--green);"></div></div>
+
+  <!-- ===== SECTION 3: AF Bit Breakdown ===== -->
+  <div class="section">
+    <div class="section-title">第三层：DSCP 的 6 bits 在 AF 中的分配</div>
+    <div class="af-zoom">
+      <div class="af-zoom-title">AF 的 DSCP 6-bit 结构</div>
+
+      <!-- Bit labels -->
+      <div class="af-bits">
+        <div class="af-bit af-label">bit 5</div>
+        <div class="af-bit af-label">bit 4</div>
+        <div class="af-bit af-label">bit 3</div>
+        <div class="af-bit af-label">bit 2</div>
+        <div class="af-bit af-label">bit 1</div>
+        <div class="af-bit af-label">bit 0</div>
+      </div>
+      <!-- Bit roles -->
+      <div class="af-bits">
+        <div class="af-bit class-bit">C</div>
+        <div class="af-bit class-bit">C</div>
+        <div class="af-bit class-bit">C</div>
+        <div class="af-bit drop-bit">D</div>
+        <div class="af-bit drop-bit">D</div>
+        <div class="af-bit zero-bit">0</div>
+      </div>
+
+      <!-- Brackets -->
+      <div class="af-bracket-row">
+        <div class="bracket-label class-label">Class (1-4)</div>
+        <div class="bracket-label drop-label">Drop (1-3)</div>
+        <div class="bracket-label zero-label">固定 0</div>
+      </div>
+      <div class="af-bracket-row">
+        <div class="bracket-desc">转发优先级<br>高位 → ×8</div>
+        <div class="bracket-desc">丢弃概率<br>中位 → ×2</div>
+        <div class="bracket-desc"></div>
+      </div>
+    </div>
+
+    <!-- Formula -->
+    <div class="formula-box">
+      <div class="label">✦ 公式 ✦</div>
+      <div class="formula">
+        DSCP <span class="op">=</span>
+        <span class="cls-c">Class</span> <span class="op">×</span> <span class="cls-c">8</span>
+        <span class="op">+</span>
+        <span class="drp-c">Drop</span> <span class="op">×</span> <span class="drp-c">2</span>
+      </div>
+      <div class="why">
+        为什么是 ×8？因为 Class 在 <code>bit 5,4,3</code> 位置，2³ = 8<br>
+        为什么是 ×2？因为 Drop 在 <code>bit 2,1</code> 位置，2¹ = 2
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 4: Examples ===== -->
+  <div class="section examples">
+    <div class="section-title">实例拆解</div>
+
+    <!-- Example 1: AF41 -->
+    <div class="example-card">
+      <div class="example-title">AF41 <span class="tag">DSCP 34</span></div>
+      <div class="bit-display">
+        <div class="bit-box cls">1</div>
+        <div class="bit-box cls">0</div>
+        <div class="bit-box cls">0</div>
+        <div class="bit-box drp">0</div>
+        <div class="bit-box drp">1</div>
+        <div class="bit-box zro">0</div>
+      </div>
+      <div class="calc-line">Class = <span class="hl">100</span>(二进制) = <span class="hl">4</span> &nbsp;|&nbsp; Drop = <span class="hl">01</span>(二进制) = <span class="hl">1</span></div>
+      <div class="calc-line"><span class="hl">4</span> × 8 + <span class="hl">1</span> × 2 = 32 + 2 = <span class="result">34 ✓</span></div>
+    </div>
+
+    <!-- Example 2: AF23 -->
+    <div class="example-card">
+      <div class="example-title">AF23 <span class="tag">DSCP 22</span></div>
+      <div class="bit-display">
+        <div class="bit-box cls">0</div>
+        <div class="bit-box cls">1</div>
+        <div class="bit-box cls">0</div>
+        <div class="bit-box drp">1</div>
+        <div class="bit-box drp">1</div>
+        <div class="bit-box zro">0</div>
+      </div>
+      <div class="calc-line">Class = <span class="hl">010</span>(二进制) = <span class="hl">2</span> &nbsp;|&nbsp; Drop = <span class="hl">11</span>(二进制) = <span class="hl">3</span></div>
+      <div class="calc-line"><span class="hl">2</span> × 8 + <span class="hl">3</span> × 2 = 16 + 6 = <span class="result">22 ✓</span></div>
+    </div>
+
+    <!-- Example 3: AF32 -->
+    <div class="example-card">
+      <div class="example-title">AF32 <span class="tag">DSCP 28</span></div>
+      <div class="bit-display">
+        <div class="bit-box cls">0</div>
+        <div class="bit-box cls">1</div>
+        <div class="bit-box cls">1</div>
+        <div class="bit-box drp">1</div>
+        <div class="bit-box drp">0</div>
+        <div class="bit-box zro">0</div>
+      </div>
+      <div class="calc-line">Class = <span class="hl">011</span>(二进制) = <span class="hl">3</span> &nbsp;|&nbsp; Drop = <span class="hl">10</span>(二进制) = <span class="hl">2</span></div>
+      <div class="calc-line"><span class="hl">3</span> × 8 + <span class="hl">2</span> × 2 = 24 + 4 = <span class="result">28 ✓</span></div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 5: Full AF Table ===== -->
+  <div class="section">
+    <div class="section-title">AF 全表（12 个值）</div>
+    <div class="af-table-wrapper">
+      <table class="af-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th style="color:var(--green)">Drop 1 (低丢弃)</th>
+            <th style="color:var(--yellow)">Drop 2 (中丢弃)</th>
+            <th style="color:var(--red)">Drop 3 (高丢弃)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="class-col">Class 1</td>
+            <td class="drop1">AF11 = 10</td>
+            <td class="drop2">AF12 = 12</td>
+            <td class="drop3">AF13 = 14</td>
+          </tr>
+          <tr>
+            <td class="class-col">Class 2</td>
+            <td class="drop1">AF21 = 18</td>
+            <td class="drop2">AF22 = 20</td>
+            <td class="drop3">AF23 = 22</td>
+          </tr>
+          <tr>
+            <td class="class-col">Class 3</td>
+            <td class="drop1">AF31 = 26</td>
+            <td class="drop2">AF32 = 28</td>
+            <td class="drop3">AF33 = 30</td>
+          </tr>
+          <tr>
+            <td class="class-col">Class 4</td>
+            <td class="drop1">AF41 = 34</td>
+            <td class="drop2">AF42 = 36</td>
+            <td class="drop3">AF43 = 38</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <strong>Class ↑ = 转发优先级更高</strong>（Class 4 > Class 3 > Class 2 > Class 1）<br>
+      <strong>Drop ↑ = 拥塞时更容易被丢弃</strong>（Drop 3 最先丢，Drop 1 最后丢）
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
