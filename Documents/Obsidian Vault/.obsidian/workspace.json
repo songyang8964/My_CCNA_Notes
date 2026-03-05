@@ -75,15 +75,18 @@
             "id": "0d1214c0781910eb",
             "type": "leaf",
             "state": {
-              "type": "image",
+              "type": "markdown",
               "state": {
-                "file": "Pasted image 20251023092724.png"
+                "file": "My_CCNA_Notes/CCNA 网络自动化工具完整笔记：从基础到 Ansible & Terraform.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-image",
-              "title": "Pasted image 20251023092724"
+              "icon": "lucide-file",
+              "title": "CCNA 网络自动化工具完整笔记：从基础到 Ansible & Terraform"
             }
           }
-        ]
+        ],
+        "currentTab": 5
       }
     ],
     "direction": "vertical"
@@ -156,7 +159,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "My_CCNA_Notes/CCNA里常考的端口号.md",
+                "file": "My_CCNA_Notes/VPN_GRE_IPSec_CCNA_Notes.md",
                 "collapseAll": true,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -166,7 +169,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for CCNA里常考的端口号"
+              "title": "Backlinks for VPN_GRE_IPSec_CCNA_Notes"
             }
           },
           {
@@ -242,13 +245,18 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "19a7b80ef6b0412e",
+  "active": "0d1214c0781910eb",
   "lastOpenFiles": [
-    "My_CCNA_Notes/Jeremy IT lab Mega Lab.md",
     "My_CCNA_Notes/QoS.md",
-    "My_CCNA_Notes/关于CRC.md",
-    "My_CCNA_Notes/Wi-Fi 标准演进故事（记忆法）.md",
+    "My_CCNA_Notes/CCNA 网络自动化工具完整笔记：从基础到 Ansible & Terraform.md",
     "My_CCNA_Notes/VPN_GRE_IPSec_CCNA_Notes.md",
+    "My_CCNA_Notes/VXLAN.md",
+    "My_CCNA_Notes/Wi-Fi 标准演进故事（记忆法）.md",
+    "My_CCNA_Notes/关于CRC.md",
+    "VXLAN_Encapsulation.html",
+    "My_CCNA_Notes/Linux.md",
+    "My_CCNA_Notes/Li.md",
+    "My_CCNA_Notes/Jeremy IT lab Mega Lab.md",
     "My_CCNA_Notes/CCNA里常考的端口号.md",
     "My_CCNA_Notes/question_bank/题库错题.md",
     "Welcome.md",

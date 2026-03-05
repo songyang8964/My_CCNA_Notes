@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VXLAN 封装结构</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: #0a0e17;
+    color: #e0e0e0;
+    padding: 28px;
+    min-height: 100vh;
+  }
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    color: #fff;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .subtitle {
+    text-align: center;
+    color: #8892a4;
+    font-size: 13px;
+    margin-bottom: 40px;
+  }
+  .section-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #8892a4;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* Original frame */
+  .packet-row {
+    display: flex;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .packet-row .cell {
+    padding: 16px 12px;
+    text-align: center;
+    border-right: 1px solid rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+  }
+  .packet-row .cell:last-child { border-right: none; }
+  .cell .label { font-size: 10px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px; }
+  .cell .value { font-size: 13px; font-weight: 600; }
+
+  .orig-mac { background: #2d1f5e; color: #c4b5fd; flex: 1.2; }
+  .orig-ip { background: #1e3a5f; color: #93c5fd; flex: 1; }
+  .orig-data { background: #1a3344; color: #7dd3c8; flex: 1.5; }
+
+  /* Encapsulated section */
+  .encap-container { position: relative; margin-top: 44px; margin-bottom: 16px; }
+
+  .region-wrapper { display: flex; margin-bottom: 6px; gap: 0; }
+  .region { display: flex; flex-direction: column; align-items: center; }
+  .region-bar { height: 5px; border-radius: 2px; width: 100%; }
+  .region-text {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 5px;
+    margin-bottom: 10px;
+  }
+
+  .encap-row {
+    display: flex;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .encap-row .cell {
+    padding: 18px 6px;
+    text-align: center;
+    border-right: 1px solid rgba(0,0,0,0.25);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+  }
+  .encap-row .cell:last-child { border-right: none; }
+
+  .ul-eth { background: #7c2d12; color: #fed7aa; flex: 1; }
+  .ul-ip { background: #9a3412; color: #ffedd5; flex: 1.2; }
+  .ul-udp { background: #b45309; color: #fef3c7; flex: 0.8; }
+  .vxlan-hdr { background: #581c87; color: #e9d5ff; flex: 0.8; }
+  .ol-mac { background: #164e63; color: #a5f3fc; flex: 1; }
+  .ol-ip { background: #155e75; color: #bae6fd; flex: 1; }
+  .ol-data { background: #1e3a4a; color: #7dd3c8; flex: 1.2; }
+
+  /* Explain cards */
+  .explain-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-top: 40px;
+  }
+  .explain-card {
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid;
+  }
+  .explain-card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .explain-card p {
+    font-size: 12.5px;
+    line-height: 1.7;
+    opacity: 0.85;
+  }
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .card-underlay { background: rgba(249,115,22,0.08); border-color: rgba(249,115,22,0.25); }
+  .card-underlay h3 { color: #fb923c; }
+  .card-underlay .dot { background: #f97316; }
+  .card-vxlan { background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,0.25); }
+  .card-vxlan h3 { color: #c084fc; }
+  .card-vxlan .dot { background: #a855f7; }
+  .card-overlay { background: rgba(34,211,238,0.08); border-color: rgba(34,211,238,0.25); }
+  .card-overlay h3 { color: #67e8f9; }
+  .card-overlay .dot { background: #22d3ee; }
+
+  /* Flow steps */
+  .flow-section { margin-top: 44px; }
+  .flow-steps { display: flex; gap: 0; align-items: stretch; }
+  .flow-step {
+    flex: 1;
+    padding: 20px 16px;
+    border-radius: 10px;
+  }
+  .flow-arrow {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; flex-shrink: 0;
+    font-size: 22px; color: #4b5563;
+  }
+  .flow-step .step-num {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    opacity: 0.6; margin-bottom: 6px;
+  }
+  .flow-step .step-title {
+    font-size: 15px; font-weight: 700; margin-bottom: 10px;
+  }
+  .flow-step .step-desc {
+    font-size: 12.5px; line-height: 1.7; opacity: 0.8;
+  }
+  .step-edge { background: rgba(34,211,238,0.08); border: 1px solid rgba(34,211,238,0.2); }
+  .step-edge .step-title { color: #67e8f9; }
+  .step-transit { background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.2); }
+  .step-transit .step-title { color: #fb923c; }
+
+  .key-point {
+    margin-top: 32px;
+    padding: 18px 22px;
+    background: rgba(255,255,255,0.04);
+    border-left: 3px solid #f97316;
+    border-radius: 0 8px 8px 0;
+    font-size: 13.5px;
+    line-height: 1.8;
+    color: #d1d5db;
+  }
+  .key-point strong { color: #fb923c; }
+
+  @media (max-width: 700px) {
+    .explain-grid { grid-template-columns: 1fr; }
+    .flow-steps { flex-direction: column; }
+    .flow-arrow { width: auto; height: 28px; transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<h1>VXLAN 封装结构：Underlay vs Overlay</h1>
+<p class="subtitle">哪些字段是 Underlay 转发的，哪些是 Overlay 的"货物"</p>
+
+<div class="section-label">封装前 — 用户发出的原始以太网帧</div>
+<div class="packet-row">
+  <div class="cell orig-mac">
+    <span class="label">二层头</span>
+    <span class="value">目的MAC → 源MAC</span>
+  </div>
+  <div class="cell orig-ip">
+    <span class="label">三层头</span>
+    <span class="value">源IP → 目的IP</span>
+  </div>
+  <div class="cell orig-data">
+    <span class="label">载荷</span>
+    <span class="value">用户数据 (Payload)</span>
+  </div>
+</div>
+
+<div class="encap-container">
+  <div class="section-label" style="margin-top: 36px;">封装后 — VXLAN 报文在网络上传输的样子</div>
+
+  <div class="region-wrapper">
+    <div class="region" style="flex: 3;">
+      <div class="region-bar" style="background: linear-gradient(90deg, #f97316, #fb923c);"></div>
+      <span class="region-text" style="color: #fb923c;">← UNDERLAY 转发这部分 →</span>
+    </div>
+    <div class="region" style="flex: 0.8;">
+      <div class="region-bar" style="background: linear-gradient(90deg, #a855f7, #c084fc);"></div>
+      <span class="region-text" style="color: #c084fc;">标识</span>
+    </div>
+    <div class="region" style="flex: 3.2;">
+      <div class="region-bar" style="background: linear-gradient(90deg, #22d3ee, #67e8f9);"></div>
+      <span class="region-text" style="color: #67e8f9;">← OVERLAY 的"货物"（原始帧完整保留）→</span>
+    </div>
+  </div>
+
+  <div class="encap-row">
+    <div class="cell ul-eth">
+      <span class="label">外层二层头</span>
+      <span class="value">外层MAC</span>
+    </div>
+    <div class="cell ul-ip">
+      <span class="label">外层三层头</span>
+      <span class="value">源=VTEP_A<br>目的=VTEP_B</span>
+    </div>
+    <div class="cell ul-udp">
+      <span class="label">外层四层</span>
+      <span class="value">UDP<br>端口4789</span>
+    </div>
+    <div class="cell vxlan-hdr">
+      <span class="label">VXLAN头</span>
+      <span class="value">VNI<br>(24bit)</span>
+    </div>
+    <div class="cell ol-mac">
+      <span class="label">原始二层头</span>
+      <span class="value">原始MAC</span>
+    </div>
+    <div class="cell ol-ip">
+      <span class="label">原始三层头</span>
+      <span class="value">原始IP</span>
+    </div>
+    <div class="cell ol-data">
+      <span class="label">原始载荷</span>
+      <span class="value">用户数据</span>
+    </div>
+  </div>
+</div>
+
+<div class="explain-grid">
+  <div class="explain-card card-underlay">
+    <h3><span class="dot"></span>Underlay 转发部分</h3>
+    <p>外层以太网头 + 外层 IP 头 + UDP 头。<br><br>中间交换机/路由器<strong style="color:#fb923c">只看这部分</strong>，根据外层目的 IP（VTEP_B 的地址）查路由表做 L3 转发。<br><br>它们完全不知道里面包着什么。</p>
+  </div>
+  <div class="explain-card card-vxlan">
+    <h3><span class="dot"></span>VXLAN 头（分界线）</h3>
+    <p>包含 VNI（24 bit），标识这个帧属于哪个逻辑二层网络。<br><br>相当于传统 VLAN ID 的升级版，最多约 1600 万个隔离域。</p>
+  </div>
+  <div class="explain-card card-overlay">
+    <h3><span class="dot"></span>Overlay 的"货物"</h3>
+    <p>用户发出的原始以太网帧，<strong style="color:#67e8f9">一个字节都没改</strong>，完整保留在里面。<br><br>目的 Edge Node 解封装后直接把这个原始帧交给目标主机。</p>
+  </div>
+</div>
+
+<div class="flow-section">
+  <div class="section-label">转发全流程</div>
+  <div class="flow-steps">
+    <div class="flow-step step-edge">
+      <div class="step-num">Step 1 · Edge Node A</div>
+      <div class="step-title">封装</div>
+      <div class="step-desc">收到用户原始帧 → 查 LISP 得知目标在 Edge B → 在原始帧外面套上 VXLAN头 + UDP头 + 外层IP头 → 发给 Underlay</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step step-transit">
+      <div class="step-num">Step 2 · Underlay 网络</div>
+      <div class="step-title">L3 转发</div>
+      <div class="step-desc">中间路由器只看外层 IP 头 → 查路由表 → 逐跳转发 → 不拆包、不看内层 → 送到 Edge Node B</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step step-edge">
+      <div class="step-num">Step 3 · Edge Node B</div>
+      <div class="step-title">解封装</div>
+      <div class="step-desc">收到 VXLAN 包 → 剥掉外层所有头部 → 还原出原始以太网帧 → 交给目标主机</div>
+    </div>
+  </div>
+</div>
+
+<div class="key-point">
+  <strong>核心理解：</strong>Underlay 网络中的设备只看到一个普通的 IP/UDP 包在传输，它们不知道里面装着用户的二层帧。Overlay 的二层帧被当作"货物"封装在 L3 包裹里，通过 L3 网络安全送达目的地后再拆开。这就是 "L2 over L3" 的本质。
+</div>
+
+</body>
+</html>
